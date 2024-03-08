@@ -1,6 +1,8 @@
 import { useCartContext } from '@/src/providers/cartProvider';
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import Button from './Button';
+import { supabase } from '@/src/lib/supabase';
 
 const CartListItems = ({ item}) => {
 
@@ -23,6 +25,8 @@ const CartListItems = ({ item}) => {
           <Text style={styles.quantityButton}>+</Text>
         </TouchableOpacity>
       </View>
+      
+
     </View>
   );
 };

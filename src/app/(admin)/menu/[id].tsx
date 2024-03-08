@@ -44,6 +44,7 @@ const ProductDetailScreen = () => {
                 )
             }} />
 
+
       <Image source={{ uri: product.image }} style={styles.image} />
 
       {/* Sizes */}
