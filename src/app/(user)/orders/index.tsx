@@ -1,10 +1,20 @@
-import { FlatList } from 'react-native';
-import orders from '@/assets/data/order';
+import { ActivityIndicator, FlatList } from 'react-native';
+
 import OrderListItem from '../../components/OrderListItem';
 import { Stack } from 'expo-router';
+import {  useMyOrderList } from '@/src/api/orders';
+import { Text } from 'react-native';
 
 
 export default function OrdersScreen() {
+  const { data: orders, error, isLoading } = useMyOrderList()
+
+  if (isLoading) {
+    return <ActivityIndicator />
+  }
+  if (error) {
+    return <Text>Failed to load</Text>
+  }
   return (
     <>
       <Stack.Screen options={{ title: 'Orders' }} />

@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import React, { useState } from 'react';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import products from '@/assets/data/products';
@@ -6,50 +6,39 @@ import Button from '../../components/Button';
 import { useCartContext } from '@/src/providers/cartProvider';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import { useProduct } from '@/src/api/products';
+import RemoteImage from '../../components/RemoteImage';
 const sizes = ['S', 'M', 'L', 'XL'];
 
 const ProductDetailScreen = () => {
-  const router = useRouter()
-
-  const { addItem } = useCartContext()
-
   const [sizeSelected, setSizeSelected] = useState('M')
 
+  // ! $ using tanstack to fetch product based on id
+  const { id: idString } = useLocalSearchParams();
+  const id = parseFloat(typeof idString === 'string' ? idString : idString[0])
+  const { data: product, error, isLoading } = useProduct(id)
 
-  const { id } = useLocalSearchParams();
-  const product = products.find((p) => p.id.toString() === id);
-
-  const addToCart = () => {
-    if (!product) {
-      return
-    }
-    addItem(product, sizeSelected)
-    router.push('/cart')
-  };
-
-  if (!product) {
-    return <Text>No Product found</Text>;
+  if (isLoading) {
+    return <ActivityIndicator />
+  }
+  if (error) {
+    return <Text>Failed to fetch products</Text>
   }
 
   return (
     <View style={styles.container}>
-  
-      <Stack.Screen  options={{ 
-                title: 'create a product', headerRight: () => (
-                    <Link href={`/(admin)/menu/create?id=${id}`} asChild>
-                        <Pressable>
-                            <FontAwesome name="pencil" size={25} style={{ marginRight: 15, }} />
-                        </Pressable>
-                    </Link>
-                )
-            }} />
 
-
-      <Image source={{ uri: product.image }} style={styles.image} />
-
+      <Stack.Screen options={{
+        title: 'create a product', headerRight: () => (
+          <Link href={`/(admin)/menu/create?id=${id}`} asChild>
+            <Pressable>
+              <FontAwesome name="pencil" size={25} style={{ marginRight: 15, }} />
+            </Pressable>
+          </Link>
+        )
+      }} />
+      <RemoteImage path={product.image}  style={styles.image} />
       {/* Sizes */}
-     
-
       <Text style={styles.price}>{product.name}</Text>
       <Text style={styles.price}>${product.price}</Text>
 

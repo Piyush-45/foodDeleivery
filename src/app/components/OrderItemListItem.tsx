@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Image } from 'react-native';
 import React from 'react';
+import RemoteImage from './RemoteImage';
 
 // import RemoteImage from './RemoteImage';
 
@@ -11,7 +12,7 @@ const OrderItemListItem = ({ item }) => {
   return (
     <View style={styles.container}>
      
-
+     <RemoteImage  path={item.products.image} fallback='' style={styles.image} />
       <View style={{ flex: 1 }}>
         <Text style={styles.title}>{item.products.name}</Text>
         <View style={styles.subtitleContainer}>

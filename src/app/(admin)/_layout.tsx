@@ -20,10 +20,10 @@ const _layout = () => {
   return (
     <Tabs screenOptions={{ tabBarStyle: { backgroundColor: 'yellow' } }}>
       <Tabs.Screen name='index' options={{ href: null, }} />
-      <Tabs.Screen name='menu' options={{ title: "Menu", headerShown: false }}
+      <Tabs.Screen name='menu' options={{ title: "Menu", headerShown: false,tabBarIcon:()=>(<TabBarIcon name='cutlery' color='gray' />) }}
       />
-      <Tabs.Screen name='orders' options={{ headerShown: false, title: 'Orders' }} />
-      {/* <Tabs.Screen name='/[id]' options={{headerTitle:"details"}}/> */}
+      <Tabs.Screen name='orders' options={{ headerShown: false, title: 'Orders', tabBarIcon: () => <TabBarIcon name="list" color='gray' />}} />
+      
     </Tabs>
   )
 }

@@ -4,9 +4,11 @@ import { Product } from '@/src/types';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 
 import { Link, Stack, useSegments } from 'expo-router';
+import { Tables } from '@/src/database.types';
+import RemoteImage from './RemoteImage';
 
 type ProductListItemProps = {
-    product: Product;
+    product: Tables<'products'>;
 }
 
 const ProductListItem = ({ product }: ProductListItemProps) => {
@@ -18,7 +20,7 @@ const ProductListItem = ({ product }: ProductListItemProps) => {
         <Link href={`/${segments[0]}/menu/${product.id}`} asChild>
             <Pressable style={styles.container}>
 
-                <Image source={{ uri: product.image }} style={styles.image} />
+                <RemoteImage path={product.image} style={styles.image} />
                 <Text style={styles.name}>{product.name}</Text>
                 <Text style={styles.price}>${product.price.toFixed(2)}</Text>
             </Pressable>

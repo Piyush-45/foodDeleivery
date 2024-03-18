@@ -2,12 +2,13 @@ import React from 'react';
 import { View, FlatList, StyleSheet, Text, TouchableOpacity, Button } from 'react-native';
 import { useCartContext } from '../providers/cartProvider';
 import CartListItems from './components/CartListItems'; // Import CartListItems component
+import { supabase } from '../lib/supabase';
 // import Button from './components/Button';
 
 
 const CartScreen = () => {
 
-  const { cartItems, total } = useCartContext();
+  const { cartItems, total, checkout } = useCartContext();
 
 
   return (
@@ -23,9 +24,10 @@ const CartScreen = () => {
       // keyExtractor={(item) => item.product_id}
       />
       <Text style={{ fontSize: 20, fontWeight: 'bold', fontStyle: 'italic', color: 'blue' }}>Total :${total}</Text>
-      <TouchableOpacity>
-        <Text style={styles.checkoutBtn}>Checkout</Text>
-      </TouchableOpacity>
+      {/* <TouchableOpacity onPress={checkOut}>
+        <Text style={styles.checkoutBtn} >Checkout</Text>
+      </TouchableOpacity> */}
+      <Button title='checkout ' onPress={checkout}/>
 
 
     </View>

@@ -1,18 +1,109 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import defaultImage from "../../../../src/dp.jpg"
 import * as ImagePicker from 'expo-image-picker';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams, useRouter } from 'expo-router';
 import Button from '../../components/Button';
+import { useDelete, useDeleteProduct, useInsertProduct, useProduct, useUpadteProduct } from '@/src/api/products';
+import * as FileSystem from 'expo-file-system';
+import { randomUUID } from 'expo-crypto';
+import { supabase } from '@/src/lib/supabase';
+import { decode } from 'base64-arraybuffer';
+import RemoteImage from '../../components/RemoteImage';
 
 const CreateProductScreen = () => {
-  const { id } = useLocalSearchParams()
-  const isUpdating = !!id
-
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [image, setImage] = useState(null);
+  const [errors, setErrors] = useState('');
+  const [image, setImage] = useState<string | null>(null);
+
+  const { id: idString } = useLocalSearchParams();
+  const id = parseFloat(
+    typeof idString === 'string' ? idString : idString?.[0]
+  );
+  const isUpdating = !!idString;
+
+  const { mutate: insertProduct } = useInsertProduct();
+  const { mutate: updateProduct } = useUpadteProduct();
+  const { data: updatingProduct } = useProduct(id);
+  const { mutate: deleteProduct } = useDeleteProduct();
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (updatingProduct) {
+      setName(updatingProduct.name);
+      setPrice(updatingProduct.price.toString());
+      setImage(updatingProduct.image);
+    }
+  }, [updatingProduct]);
+
+  const resetFields = () => {
+    setName('');
+    setPrice('');
+  };
+
+  const validateInput = () => {
+    setErrors('');
+    if (!name) {
+      setErrors('Name is required');
+      return false;
+    }
+    if (!price) {
+      setErrors('Price is required');
+      return false;
+    }
+    if (isNaN(parseFloat(price))) {
+      setErrors('Price is not a number');
+      return false;
+    }
+    return true;
+  };
+
+  const onSubmit = () => {
+    if (isUpdating) {
+      // update
+      onUpdate();
+    } else {
+      onCreate();
+    }
+  };
+
+  const onCreate = async () => {
+    if (!validateInput()) {
+      return;
+    }
+
+    const imagePath = await uploadImage();
+
+    // Save in the database
+    insertProduct(
+      { name, price: parseFloat(price), image: imagePath },
+      {
+        onSuccess: () => {
+          resetFields();
+          router.back();
+        },
+      }
+    );
+  };
+
+  const onUpdate = async () => {
+    if (!validateInput()) {
+      return;
+    }
+    const imagePath = await uploadImage();
+
+    updateProduct(
+      { id, name, price: parseFloat(price), image: imagePath },
+      {
+        onSuccess: () => {
+          resetFields();
+          router.back();
+        },
+      }
+    );
+  };
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -23,152 +114,125 @@ const CreateProductScreen = () => {
       quality: 1,
     });
 
-    console.log(result);
-
     if (!result.canceled) {
       setImage(result.assets[0].uri);
     }
   };
 
-  const onCreate = () => {
-    // Reset previous error message
-    setErrorMessage('');
-
-    // Check if name is empty
-    if (!name.trim()) {
-      setErrorMessage('Please enter a name for the product.');
-      return;
-    }
-
-    // Check if price is empty or not a number
-    if (!price.trim() || isNaN(parseFloat(price))) {
-      setErrorMessage('Please enter a valid price for the product.');
-      return;
-    }
-
-    // All validations passed, perform creation action
-    // For now, just clearing the input fields
-    setName('');
-    setPrice('');
-    alert('Product created successfully.');
-  };
-
-  const onUpdate = () => {
-    // Reset previous error message
-    setErrorMessage('');
-
-    // Check if name is empty
-    if (!name.trim()) {
-      setErrorMessage('Please enter a name for the product.');
-      return;
-    }
-
-    // Check if price is empty or not a number
-    if (!price.trim() || isNaN(parseFloat(price))) {
-      setErrorMessage('Please enter a valid price for the product.');
-      return;
-    }
-
-    // All validations passed, perform creation action
-    // For now, just clearing the input fields
-    setName('');
-    setPrice('');
-    alert('Product created successfully.');
-  };
-
-
-  const handleSubmit = () => {
-    if (isUpdating) {
-      onUpdate()
-    } else {
-      onCreate()
-    }
-  }
-
   const onDelete = () => {
-    console.log('Delete')
-  }
+    deleteProduct(id, {
+      onSuccess: () => {
+        resetFields();
+        router.replace('/(admin)');
+      },
+    });
+  };
+
   const confirmDelete = () => {
-    Alert.alert("Confirm", "are you sure you want to delete", [
+    Alert.alert('Confirm', 'Are you sure you want to delete this product', [
       {
-        text: 'cancel'
-      }, {
+        text: 'Cancel',
+      },
+      {
         text: 'Delete',
         style: 'destructive',
-        onPress:onDelete
-      }
-    ])
-  }
+        onPress: onDelete,
+      },
+    ]);
+  };
 
+  const uploadImage = async () => {
+    if (!image?.startsWith('file://')) {
+      return;
+    }
+
+    const base64 = await FileSystem.readAsStringAsync(image, {
+      encoding: 'base64',
+    });
+    const filePath = `${randomUUID()}.png`;
+    const contentType = 'image/png';
+
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, decode(base64), { contentType });
+
+    console.log(error);
+
+    if (data) {
+      return data.path;
+    }
+  };
 
   return (
-
     <View style={styles.container}>
-      <Stack.Screen options={{ title: isUpdating ? 'update Product' : 'create product' }} />
+      <Stack.Screen
+        options={{ title: isUpdating ? 'Update Product' : 'Create Product' }}
+      />
 
-      <Image source={{ uri: image }} style={{ width: '50%', height: 100, resizeMode: 'cover', borderRadius: 100, alignSelf: 'center', aspectRatio: 1, }} />
-      <TouchableOpacity><Text onPress={pickImage} style={{ color: 'skyblue', fontSize: 14, textAlign: 'center' }}>Select Image</Text></TouchableOpacity>
+      <Image
+        source={{ uri: image  || RemoteImage}}
+        style={styles.image}
+      />
+      <Text onPress={pickImage} style={styles.textButton}>
+        Select Image
+      </Text>
+
       <Text style={styles.label}>Name</Text>
       <TextInput
-        placeholder="Name"
-        style={styles.input}
         value={name}
         onChangeText={setName}
+        placeholder="Name"
+        style={styles.input}
       />
+
       <Text style={styles.label}>Price ($)</Text>
       <TextInput
+        value={price}
+        onChangeText={setPrice}
         placeholder="9.99"
         style={styles.input}
         keyboardType="numeric"
-        value={price}
-        onChangeText={setPrice}
       />
-      {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>{isUpdating ? 'Update' : 'Create'}</Text>
-      </TouchableOpacity>
 
-      {isUpdating && <Button text='delete' onPress={confirmDelete} />}
+      <Text style={{ color: 'red' }}>{errors}</Text>
+      <Button onPress={onSubmit} text={isUpdating ? 'Update' : 'Create'} />
+      {isUpdating && (
+        <Text onPress={confirmDelete} style={styles.textButton}>
+          Delete
+        </Text>
+      )}
     </View>
   );
 };
 
+export default CreateProductScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     padding: 10,
-    gap: 10
-    // alignItems:'c'
+  },
+  image: {
+    width: '50%',
+    aspectRatio: 1,
+    alignSelf: 'center',
+  },
+  textButton: {
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    color: 'white',
+    marginVertical: 10,
+  },
+
+  input: {
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 5,
+    marginBottom: 20,
   },
   label: {
+    color: 'gray',
     fontSize: 16,
-    marginBottom: 5,
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  button: {
-    backgroundColor: 'black',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    // backgroundColor:'black',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  errorMessage: {
-    color: 'red',
-    marginBottom: 10,
   },
 });
-
-export default CreateProductScreen;

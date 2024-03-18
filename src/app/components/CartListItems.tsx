@@ -3,6 +3,8 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import Button from './Button';
 import { supabase } from '@/src/lib/supabase';
+import RemoteImage from './RemoteImage';
+import products from '@/assets/data/products';
 
 const CartListItems = ({ item}) => {
 
@@ -10,7 +12,7 @@ const CartListItems = ({ item}) => {
 
   return (
     <View style={styles.cartItem}>
-      <Image source={{ uri: item.product.image }} style={styles.image} />
+      <RemoteImage  path={item.product.image} fallback='' style={styles.image} />
       <View style={styles.itemInfo}>
         <Text style={styles.productName}>{item.product.name}</Text>
         <Text>Size: {item.size}</Text>

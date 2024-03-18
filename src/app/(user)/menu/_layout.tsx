@@ -14,7 +14,7 @@ const _layout = () => {
     )}}> 
 
             <Stack.Screen  name='index' options={{title:'Menu'}}/>
-            {/* <Stack.Screen  name='[id]' options={{headerShown:false}}/> */}
+
         </Stack>
 
     )
